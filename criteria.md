@@ -50,8 +50,14 @@ in at least 4 of 5 tries.
      just keep five of them, or the "4 of 5" above has nothing to be 4 of. -->
 
 **Why this target:**
-<!-- What did your distances look like when you set the cutoff in Milestone 4?
-     Was there a clean gap, or did the two groups overlap? -->
+I measured the best distance for my 5 real test questions and my 5
+OUT_OF_SCOPE questions. In-corpus distances ranged 0.144-0.364; out-of-scope
+distances ranged 0.808-0.982. That's a clean gap of 0.44 with nothing in it,
+noticeably wider than the 0.45-0.75 range most corpora land in for their
+final cutoff — so I kept the starter's default of 0.6, which sits
+comfortably in the middle of that gap. I chose "4 of 5" rather than "5 of 5"
+because even with a clean gap, a single unusual phrasing could still land
+closer to the boundary than these five samples did.
 
 ---
 

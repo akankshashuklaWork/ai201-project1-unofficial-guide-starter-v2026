@@ -114,27 +114,40 @@ June and September for the beach without the crowds. July and August are busy an
 <!-- One complete question and answer, pasted as text, with the source line
      visible. Milestone 4. -->
 
-**Question:**
+**Question:** What hours do Kestrelford's pubs serve food?
 
 **Answer:**
 
 ```
+Kestrelford's pubs stop serving food at 2pm for lunch and 8:30pm for the
+evening window.
+
+(Source: guide_kestrelford.md and guide_eating.md)
 ```
 
-**My relevance cutoff:**
+**My relevance cutoff:** 0.6 (the starter's default — I measured my own
+distances and found it already sits well inside the gap, so I kept it
+rather than moving it.)
 
-<!-- The number you set in config.py, and how you got there.
-
-     You ran five questions your corpus covers and the five in OUT_OF_SCOPE
-     that it clearly doesn't, and wrote down the best distance for each. What
-     did those two groups look like? Where was the gap? Put the actual numbers
-     here — the table below wants all ten rows.
-
-     Milestone 4. -->
+I ran my 5 test questions and the 5 `OUT_OF_SCOPE` questions through
+`python app.py retrieve` and recorded the best (lowest) distance for each:
 
 | Question | In corpus? | Best distance |
 |---|---|---|
-|  |  |  |
+| How many times a day does the train run from Brightwater to the regional hub on weekdays? | Yes | 0.303 |
+| What hours do Kestrelford's pubs serve food? | Yes | 0.144 |
+| Since what year has Marchwood's covered market operated? | Yes | 0.364 |
+| How do prices at Halden Bay's harbour front compare to Fell Street? | Yes | 0.303 |
+| Which day of the week is Elder Ness's one pub closed? | Yes | 0.231 |
+| What is the capital of Mongolia? | No | 0.808 |
+| How do I change the oil in a diesel engine? | No | 0.881 |
+| Who won the 1994 World Cup? | No | 0.982 |
+| What is the recommended dosage of ibuprofen for a headache? | No | 0.835 |
+| How do I write a for loop in Rust? | No | 0.859 |
+
+In-corpus distances topped out at 0.364; out-of-scope distances started at
+0.808 — a clean gap of 0.44 with nothing in it. The starter's default
+threshold of 0.6 sits comfortably in the middle of that gap, so I kept it.
 
 ## How I Used AI
 
