@@ -57,39 +57,34 @@ in at least 4 of 5 tries.
 
 ## 4. Something about your chunks
 
-<!-- YOU WRITE THIS ONE.
-
-     How would you know if your chunks were the right size? Name something
-     countable or observable.
-
-     Examples of the right shape — don't copy these, they should come from
-     what you actually saw in Milestone 3:
-       - "At least 4 of 5 sampled chunks read as a complete thought, with no
-          sentence cut in half at either end."
-       - "No chunk is shorter than 200 characters, since anything below that
-          in my corpus turned out to be a heading with no content under it." -->
-
-
+When I sample 5 chunks, at least 4 of 5 contain enough intact text to answer
+a question on their own, even if the first or last word is cut off at the
+chunk boundary.
 
 **Why this target:**
-
-
+Looking at 5 real chunks from `city_guides`, only 1 (`guide_kestrelford.md#3`)
+was genuinely unusable — a single stray sentence about a hospital with no
+indication of which town it belonged to. The others had messy edges (a word
+cut off) but still contained a complete, answerable thought. I'm targeting
+"usable" rather than "cosmetically clean," since a chunk that's slightly
+rough at the edges but still answers a question is doing its job.
 
 ---
 
 ## 5. Your choice
 
-<!-- YOU WRITE THIS ONE TOO.
-
-     Pick something you actually care about getting right. It could be about
-     speed, about refusals, about a particular kind of question your corpus
-     handles badly, about source attribution being correct rather than merely
-     present — anything, as long as it names a number or an observable
-     outcome. -->
-
-
+For at least 4 of my 5 test questions, the source(s) named in the answer
+actually contain the fact used in the answer — not just any document, but
+one that genuinely supports the answer given.
 
 **Why this target:**
+Some facts in my corpus appear in more than one document — for example, the
+1963 rail line closure is mentioned in both `guide_brightwater.md` and
+`guide_regional_transport.md`. I don't require the exact same document every
+time, since either one is a legitimate source for that fact. But I do want
+most citations to be real, not a document that happens to be nearby in the
+results but doesn't actually contain the claim. A wrong citation is worse
+than no citation, because it looks trustworthy and isn't.
 
 
 
