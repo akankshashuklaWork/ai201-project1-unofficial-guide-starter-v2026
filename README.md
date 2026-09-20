@@ -29,18 +29,33 @@
 
 ## Chunking Strategy
 
-**Chunk size:**
-**Overlap:**
+**Chunk size:** not a fixed number of characters — one chunk per `##` section
+**Overlap:** none
 
-<!-- What about YOUR documents made you pick these numbers? Short posts and
-     long sectioned guides don't want the same chunking, and "800 seemed
-     reasonable" earns nothing. Point at something you noticed when you read
-     the documents in Milestone 1.
+I picked `city_guides` because it's organised into labelled sections —
+Getting there, Getting around, Eat and drink, What to see, Where to stay,
+When to go, Practical notes. The starter's fixed 800-character chunker paid
+no attention to those headings: indexing with it produced 51 chunks from 14
+documents, and sampling them showed real damage — chunks starting or ending
+mid-word, and one chunk (`guide_kestrelford.md`, the "Practical notes"
+section) that was reduced to a single leftover sentence about a hospital,
+with no indication of which town it was even about, since the town's name
+only appeared once, at the top of the document, several sections away.
 
-     If you changed your mind partway through, say so and say why. That's worth
-     more than pretending you got it right first time.
+My chunker (`chunker.py::split_documents`) splits each document at its own
+`## Heading` markers instead of at a character count, so every chunk is a
+complete section rather than an arbitrary slice. I also prefix every chunk
+with its document's title, so a chunk like "Practical notes" — which reads
+fine inside its document but says nothing about which town it's from on its
+own — carries that context wherever it's retrieved to. There's no overlap
+between chunks, because the boundaries aren't arbitrary the way a character
+count is: a section doesn't need padding from its neighbour to make sense.
 
-     Milestone 3. -->
+Re-indexing with this chunker produced 94 chunks (up from 51 — the intro
+paragraph before each document's first heading now becomes its own chunk
+too, instead of being fused with the first section), with the shortest
+chunk at 172 characters and the longest at 758. No chunk starts or ends
+mid-word anymore.
 
 ## Sample Chunks
 
@@ -53,29 +68,45 @@
 
      Milestone 3. -->
 
-**Chunk 1** — source: `` — produced by: ``
+**Chunk 1** — source: `guide_accessibility.md#0` — produced by: `chunker.py::split_documents`
 
 ```
+Getting around the region with limited mobility
+
+An honest assessment rather than a promotional one. Some of these places are
+difficult and it is better to know in advance.
 ```
 
-**Chunk 2** — source: `` — produced by: ``
+**Chunk 2** — source: `guide_corry_vale.md#5` — produced by: `chunker.py::split_documents`
 
 ```
+Corry Vale — Where to stay
+
+Perhaps thirty beds in the entire valley, spread across two pubs and a handful of farmhouse rooms. In summer these are booked months ahead. Camping is permitted on two marked fields and nowhere else.
 ```
 
-**Chunk 3** — source: `` — produced by: ``
+**Chunk 3** — source: `guide_givens_mill.md#2` — produced by: `chunker.py::split_documents`
 
 ```
+Givens Mill — Getting around
+
+Everything is on one street along the river. The mill is at one end and the church at the other, eight minutes apart. The riverside path continues in both directions for as far as you want to walk.
 ```
 
-**Chunk 4** — source: `` — produced by: ``
+**Chunk 4** — source: `guide_kestrelford.md#4` — produced by: `chunker.py::split_documents`
 
 ```
+Kestrelford — What to see
+
+The market square on a Saturday morning is the main event and has run continuously since the 1400s. The parish church has a 13th-century tower you can climb for £2. The old trackbed walk runs six miles to the next village along an easy gradient and is the best half-day here.
 ```
 
-**Chunk 5** — source: `` — produced by: ``
+**Chunk 5** — source: `guide_pellew_sands.md#6` — produced by: `chunker.py::split_documents`
 
 ```
+Pellew Sands — When to go
+
+June and September for the beach without the crowds. July and August are busy and the town is at its most itself, for better and worse. Winter is bleak, largely closed, and has a following among people who like that sort of thing.
 ```
 
 ## Sample Answer

@@ -22,6 +22,7 @@ to it, write down what you saw, and move on. That's a real observation about
 your pipeline, not giving up.
 """
 
+import re
 from dataclasses import dataclass
 
 import config
@@ -80,24 +81,72 @@ def fallback_split(
     return chunks
 
 
+def _split_sections(text: str) -> tuple[str, list[tuple[str | None, str]]]:
+    """
+    Split one document's text into (title, sections).
+
+    Each section is a (heading, body) pair, cut at the document's own
+    `## Heading` markers rather than at a fixed character count. The intro
+    paragraph before the first heading (if there is one) comes back as a
+    section with heading=None. A document with no intro paragraph at all
+    (several of the cross-town guides jump straight from the title into
+    "## Something") produces no such section, rather than an empty one.
+    """
+    lines = text.strip().split("\n", 1)
+    title = lines[0].lstrip("#").strip()
+    rest = lines[1] if len(lines) > 1 else ""
+
+    parts = re.split(r"\n##\s+(.+)", rest)
+
+    sections: list[tuple[str | None, str]] = []
+    preamble = parts[0].strip()
+    if preamble:
+        sections.append((None, preamble))
+
+    for i in range(1, len(parts), 2):
+        heading = parts[i].strip()
+        body = parts[i + 1].strip() if i + 1 < len(parts) else ""
+        if body:
+            sections.append((heading, body))
+
+    return title, sections
+
+
 def split_documents(documents: list[Document]) -> list[Chunk]:
     """
-    Split documents into chunks. ⚠️ REPLACE THE BODY OF THIS IN MILESTONE 3.
+    Split documents at their own `## Heading` markers instead of at a fixed
+    character count.
 
-    Right now it just calls the fallback. That is the plain, generic behaviour
-    the brief is talking about.
+    Why: `city_guides` documents are already organised into labelled sections
+    (Getting there, Eat and drink, ...), and the fixed 800-character chunker
+    cuts straight through them — Milestone 1 measured this as 51 chunks from
+    14 documents, with the shortest chunk only 24 characters and several
+    chunks starting or ending mid-word. Cutting at the headings the documents
+    already have avoids that: every chunk is a complete section, and there's
+    no character count to tune because the boundary isn't arbitrary.
 
-    When you write your own strategy, set `produced_by` to
-    "chunker.py::split_documents" so your README's Sample Chunks section names
-    the right function. `app.py chunks` prints that string for you.
-
-    Things worth thinking about before you write any code:
-      - Are your documents short posts or long guides?
-      - Is the useful information in one sentence, or spread over a paragraph?
-      - Would splitting on paragraph breaks keep more thoughts intact than
-        splitting on a character count?
+    Every chunk is also prefixed with its document's title. A section like
+    "Practical notes" reads fine inside its document, but on its own — which
+    is how retrieval hands it to the model — it never says which town it's
+    about. `guide_kestrelford.md`'s "Practical notes" section, sampled with
+    the old chunker, was exactly this: a chunk about a hospital with no
+    indication of which town's hospital. Prefixing the title fixes that
+    without changing what the section says.
     """
-    return fallback_split(documents)
+    chunks: list[Chunk] = []
+    for doc in documents:
+        title, sections = _split_sections(doc.text)
+        for index, (heading, body) in enumerate(sections):
+            text = f"{title} — {heading}\n\n{body}" if heading else f"{title}\n\n{body}"
+            chunks.append(
+                Chunk(
+                    text=text,
+                    source=doc.source,
+                    index=index,
+                    produced_by="chunker.py::split_documents",
+                )
+            )
+    return chunks
 
 
 def describe(chunks: list[Chunk]) -> str:
