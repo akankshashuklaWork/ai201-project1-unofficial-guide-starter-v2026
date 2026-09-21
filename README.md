@@ -1,6 +1,6 @@
 # The Unofficial Guide
 
-<!-- Akanksha Shukla — city_guides corpus -->
+**Akanksha Shukla — `city_guides` corpus**
 
 > **This file is your submission.** Fill it in as you go — most sections get
 > written during the milestone that produces them, not at the end.
@@ -21,11 +21,15 @@
 
 ## What This Does
 
-<!-- Three or four sentences. Which corpus you picked, and the kinds of
-     questions your system answers. Write it for someone who has never seen
-     this repo.
-
-     Milestone 5. -->
+This is a question-answering system built on the `city_guides` corpus — 14
+travel guides covering nine fictional towns plus five cross-cutting guides
+(eating, walking, regional transport, seasons, accessibility). It answers
+specific factual questions about the region — bus and train schedules,
+opening hours, prices, market history, and similar details — by searching
+the actual guide text for the closest-matching passages and writing an
+answer grounded in exactly what those passages say. If a question falls
+outside what the guides cover (like general trivia or unrelated topics),
+the system says so honestly instead of guessing.
 
 ## Chunking Strategy
 
@@ -160,9 +164,26 @@ threshold of 0.6 sits comfortably in the middle of that gap, so I kept it.
 
      Milestone 5. -->
 
-**1.**
+**1.** For Milestone 2, I asked Claude to write my two remaining acceptance
+criteria for me. It refused, pointing to the project's own rule against
+letting AI write criteria, and instead asked me questions about the actual
+chunks I'd read — specifically, whether I cared more about chunks looking
+"clean" (no cut-off words) or being "usable" (answerable even with rough
+edges). I picked "usable," then went back through 5 sample chunks myself and
+counted that only 1 of 5 was genuinely unusable. That count — 4 of 5 — became
+my criterion, and the reasoning under it is my own observation, not
+something Claude generated.
 
-**2.**
+**2.** For Milestone 3, I asked Claude to help me build a better chunker
+after we found a broken chunk (a fragment about a hospital with no town name
+attached). Claude explained the idea of splitting on the document's own `##`
+headings instead of a fixed character count, and wrote the code for
+`chunker.py::split_documents`. Before trusting it, I had it show me the
+section-length statistics across my corpus first (to check whether any
+section would still need further splitting — none did), and I personally
+read through all 8 chunks it produced from `guide_kestrelford.md` to confirm
+the previously broken chunk was now a complete, labeled section before
+accepting the change.
 
 <!-- ── Stretch features ─────────────────────────────────────────────────────
      Doing one? Say so here BEFORE you start. A feature this README never

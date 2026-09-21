@@ -23,8 +23,12 @@ For at least 4 of my 5 test questions, the retrieved chunks include one that
 contains the answer.
 
 **Why this target:**
-<!-- e.g. "One of my questions is about a topic only two documents mention, so
-     I expect that one to be hard." -->
+I checked how close the best matching chunk was for each of my 5 questions.
+Lower numbers mean a closer match. My market-year question scored 0.364,
+which was the weakest of my five — the others were all closer (0.144 to
+0.303). Since I already know that question is my shakiest one, I picked
+4 of 5 instead of 5 of 5, so I'm not promising something I already have a
+reason to doubt.
 
 ---
 
@@ -33,8 +37,17 @@ contains the answer.
 Every answer the system produces names at least one source document.
 
 **Why this target:**
-<!-- Why all five and not four? What about your setup makes that achievable —
-     or what would have to go wrong for it not to be? -->
+This criterion says "every answer," so the bar is already 100% (5 of 5),
+unlike criteria 1 and 3, which only ask for 4 of 5. Promising 100% is
+normally risky, but it's realistic here because naming a source isn't
+something the AI could forget to do. In my code (`app.py`, the
+`ask_pipeline` function), the source names come from my own Python line —
+`outcome["sources"] = sorted({r.source for r in results})` — which runs
+automatically every time a question passes the gate. It just collects the
+filename of every retrieved chunk. The AI model never decides whether to
+include this; my code guarantees it. The only way it could fail is if
+retrieval came back with nothing at all, and the relevance gate already
+catches that case and refuses before it gets this far.
 
 ---
 
@@ -43,11 +56,6 @@ Every answer the system produces names at least one source document.
 When I ask a question my documents clearly don't cover, the relevance gate
 stops it and the system returns "I don't have enough information about that" —
 in at least 4 of 5 tries.
-
-<!-- The five questions are the ones in `OUT_OF_SCOPE` at the bottom of
-     `questions.py`, and `run_eval.py` puts them through the gate and writes
-     what happened into your run log. Swap them for your own if you'd rather —
-     just keep five of them, or the "4 of 5" above has nothing to be 4 of. -->
 
 **Why this target:**
 I measured the best distance for my 5 real test questions and my 5
