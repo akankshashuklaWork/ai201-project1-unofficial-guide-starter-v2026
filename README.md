@@ -185,44 +185,24 @@ read through all 8 chunks it produced from `guide_kestrelford.md` to confirm
 the previously broken chunk was now a complete, labeled section before
 accepting the change.
 
-**3.** (Unit 2) Unit 2 asks students to build a `scorer.py` file that can
-automatically grade whether an answer is right or wrong, instead of
-reading every answer by hand. I already knew, roughly, the three pieces I
-wanted: something to clean up text so small differences like capitalization
-don't matter, something to check if my expected phrase shows up in the
-answer, and a main function to tie it together. I described those three
-pieces to Claude by name. Before writing anything, it went and read the
-actual `run_eval.py` file to find out exactly what shape my function
-needed to be in order for the rest of the project to actually find and use
-it — it turned out there's a very specific requirement (a function named
-exactly `judge`, taking four particular arguments in order, returning
-`True` or `False`) that I wouldn't have known to get right on my own. It
-then wrote the three functions to match. Here's the part that mattered
-most, though: once I had it, I didn't just assume it worked — I ran my
-real evaluation with it, on real questions, and that's how I discovered
-that even though the code did exactly what I'd asked it to do, "what I'd
-asked for" (an exact word-for-word match) had a real flaw I hadn't
-anticipated when I was describing what I wanted. That flaw only became
-visible once I actually used the tool on real data, not from just reading
-the code.
+**3.** (Unit 2) For `scorer.py`, I told Claude the three functions I
+wanted — something to clean up text formatting, something to check if my
+expected phrase shows up in the answer, and a main function to tie them
+together. It read `run_eval.py` first to find the exact interface required
+(a function named `judge`, taking four specific arguments, returning
+`True`/`False`) rather than guessing, then wrote the three functions to
+match. The part that mattered most: I didn't just trust it worked. I ran
+it on real questions myself, and that's how I found that the exact-match
+approach had a real flaw neither of us had anticipated when describing
+what I wanted — it only showed up once I actually used it on real data.
 
-**4.** (Unit 2) Once I saw `scorer.py` mark a genuinely correct answer as a
-"fail," my first instinct was to assume something in my actual system was
-broken. Instead of guessing, I asked Claude to help me check systematically
-— going through each of the five stages a RAG system goes through (loading
-the documents, splitting them into chunks, turning them into searchable
-numbers, finding the closest match, and finally writing an answer) and
-checking whether that specific stage was working correctly for this one
-question. It walked through all five with me, checked the actual retrieved
-chunk against the actual answer text, and ruled out a real problem at
-every single stage — the fact really was being retrieved and used
-correctly. That process pointed the actual cause somewhere neither of us
-had first suspected: not in the RAG system at all, but in the `expects`
-phrase I myself had written back in Unit 1. Once I understood exactly
-where the problem was and why it was happening, deciding what to actually
-do about it — improve the scorer's matching logic rather than touch
-anything in the real pipeline — was a decision I made myself, based on
-that diagnosis.
+**4.** (Unit 2) When `scorer.py` marked a correct answer as a fail, I
+asked Claude to check systematically instead of guessing — going through
+each of the five pipeline stages and checking whether that stage was
+actually working for this question. It ruled out a real problem at every
+stage and traced the cause to my own `expects` phrase from Unit 1, not the
+system. Once I understood where the problem actually was, deciding what to
+do about it — fix the scorer, not the pipeline — was mine to decide.
 
 <!-- ── Stretch features ─────────────────────────────────────────────────────
      Doing one? Say so here BEFORE you start. A feature this README never
@@ -257,50 +237,35 @@ that diagnosis.
 | 4. Chunks are usable even with rough edges | 4 of 5 | 5/5 | 5/5 | 5/5 |  |
 | 5. Cited sources actually contain the fact | 4 of 5 | 5/5 | 5/5 | 5/5 |  |
 
-This table came from a file called `results/run_2026-09-29_1349_before.md`,
-which I got by running `python run_eval.py --label before` in my terminal.
-Here's what that command actually does, in plain terms: it takes each of my
-5 questions from `questions.py`, asks my system the same question 3
-separate times in a row (with the response cache turned off, so I get 3
-real, independently-generated answers instead of the same cached answer
-copy-pasted 3 times), and writes down what happened each time. It also asks
-all 5 of my `OUT_OF_SCOPE` questions once each, since those only need to be
-checked against a fixed number (the 0.6 cutoff), not repeated.
+This table came from `results/run_2026-09-29_1349_before.md`, which I got
+by running `python run_eval.py --label before`. That command asks each of
+my 5 questions 3 separate times, with caching off so I get 3 real answers
+instead of one cached answer repeated. It also runs my 5 `OUT_OF_SCOPE`
+questions once each, since those only get compared against a fixed cutoff
+(0.6), not repeated.
 
-That file has **one row per question** — 5 rows, one per question, each
-showing pass/fail for run 1/2/3. But the table my README needs has **one
-row per criterion** — 5 rows, one per criterion. So I had to go through and
-count: for criterion 1, how many of my 5 questions passed, in each of the 3
-runs? That's a different way of slicing the same data, and it's real work,
-not copy-pasting one table into another.
+The run log file has one row per *question*. My README wants one row per
+*criterion*. So I went through and counted — for criterion 1, how many of
+my 5 questions passed, per run? That's aggregating, not copy-pasting.
 
-Here's how each criterion actually got measured:
-- **Criterion 1** used `scorer.py` — a small program I built (more on that
-  in the next section) that checks whether my `expects` phrase (the word or
-  short phrase I decided in Unit 1 that a correct answer must contain) shows
-  up in the system's actual answer text.
-- **Criteria 2 and 5** couldn't be checked by `scorer.py`, because it only
-  knows how to compare against `expects` — it has no idea what "names a
-  source" or "the source is actually correct" means. So for these two, I
-  read all 15 answers myself (5 questions × 3 runs) and checked by eye.
-- **Criteria 3 and 4** are special: they don't change between runs at all.
-  Criterion 3 (the relevance gate) is just comparing a number (the best
-  distance found) against a fixed cutoff (0.6) — that comparison gives the
-  exact same result every time you run it, since nothing random is
-  involved. Criterion 4 (chunk quality) depends only on how my documents get
-  chunked, and my chunker doesn't change no matter how many times I ask
-  a question. So the same number is correct in all 3 columns for these
-  two — that's not me being lazy, it's genuinely how the math works out.
+How each one got measured:
+- **Criterion 1** used `scorer.py` (the program I built — more on it
+  below) to check whether my `expects` phrase shows up in the answer.
+- **Criteria 2 and 5** aren't things `scorer.py` knows how to check — it
+  only compares against `expects`. I read all 15 answers by hand instead.
+- **Criteria 3 and 4** don't change between runs. Criterion 3 is a
+  comparison against a fixed number, so it gives the same result every
+  time. Criterion 4 depends on chunking, which doesn't change just because
+  I asked a question three times. Same number in all 3 columns for both —
+  that's correct, not lazy.
 
 **Real output, one example per criterion:**
 
-**1 — retrieved chunk contains the answer.** My test question here was
-*"What hours do Kestrelford's pubs serve food?"* When I ran this through
-`scorer.py`, it came back "fail" in all 3 runs. But when I actually went
-and looked at the chunk my system retrieved to answer this question, the
-correct information is right there in it — I'll explain exactly why the
-scorer still said "fail" in the Diagnoses section below, but first, here's
-proof the chunk itself is correct:
+**1 — retrieved chunk contains the answer.** Test question: *"What hours
+do Kestrelford's pubs serve food?"* `scorer.py` marked this a fail in all
+3 runs. But the chunk that got retrieved actually has the right
+information in it — the full story is in Diagnoses below. Here's the
+chunk:
 
 ```
 Kestrelford — Eat and drink
@@ -357,133 +322,86 @@ not just the nearest retrieved document.
 
      Milestone 2. -->
 
-A verdict here just means: did my system's actual, measured performance
-hold up to the number I wrote down back in Unit 1, before I'd run anything?
-"MET" means yes, in every single run — not just on average. The doc I was
-given is strict about this: if my target said "4 of 5" and my 3 runs came
-out 4, 3, 4, that would count as a MISS, because the target has to hold
-every time, not show up occasionally and then dip below it once. I kept
-that rule in mind for every row below.
+A verdict just means: did my measured performance hold up to the target I
+wrote in Unit 1, before I'd run anything? "MET" means yes, every run — not
+on average. If a target said "4 of 5" and my runs came out 4, 3, 4, that's
+a MISS, since the target has to hold every time, not just mostly.
 
 | # | Criterion | Verdict | How I decided |
 |---|---|---|---|
-| 1 | Retrieved chunk contains the answer | MET | My target from Unit 1 was "at least 4 of 5." All three of my runs came out to exactly 4/5 — not 5/5, but never below 4/5 either, so the target held every single time. The one question that didn't pass (the pub hours question) isn't actually a real retrieval problem — when I went and read the chunk my system pulled back for that question, the correct opening hours were right there in the text. The only reason it got marked "fail" is that my `expects` phrase (the word/phrase I wrote back in Unit 1 that a correct answer has to contain) was worded "12 **to** 2 and 6 **to** 8:30," but the real document — and every answer generated from it — phrases the same fact as "between 12 **and** 2 and again between 6 **and** 8:30." Same numbers, same fact, just a different connecting word. Since 4 of 5 is literally what my target said ("at least 4"), I'm calling this a genuine MET rather than pretending it was actually a perfect run — it wasn't, and I want that to be visible. |
-| 2 | Every answer names a source | MET | My target was "5 of 5," the strictest of my five criteria, and all three runs came out exactly 5/5 — every single answer, across all 15 (5 questions × 3 runs), named at least one source document. This isn't surprising to me, because back in Unit 1 I explained why I thought this one would be safe: naming a source isn't something the AI model has to remember to do on its own. My own Python code (a single line in `app.py`) automatically collects the filenames of whatever chunks got retrieved and attaches them to every answer, every time. The AI can't forget to do something that isn't actually its job to do. |
-| 3 | Gate stops out-of-corpus questions | MET | My target was "at least 4 of 5," and I got 5/5 in every run — better than I required. This matches something I already knew from Unit 1: when I measured the "distance" (a number that tells you how closely related a question is to what's actually in my documents) for my 5 real questions versus my 5 made-up nonsense questions, there was a big, clean gap between the two groups (0.364 for my worst real question, versus 0.808 for my closest nonsense question). With a gap that wide, I wasn't surprised nothing landed in the middle and confused the system. |
-| 4 | Chunks are usable even with rough edges | MET | My target was "at least 4 of 5," and I got 5/5 when I pulled a fresh sample of 5 chunks using `python app.py chunks -n 5` and read through them myself. This is actually a real improvement I can point to: back before I rebuilt my chunker in Unit 1's Milestone 3, the *old* chunker (the one that just cut text every 800 characters, ignoring sentence or paragraph boundaries) produced 1 genuinely broken chunk out of a same-sized sample — a chunk that was just one leftover sentence about a hospital, with no indication of which town it was even talking about. My new chunker, which cuts at each document's own section headings instead, didn't produce a single broken chunk in this sample. |
-| 5 | Cited sources actually contain the fact | MET | My target was "at least 4 of 5," and I got 5/5. To check this one, I couldn't just trust that a source being *named* meant it was *correct* — I had to actually open each cited document myself and read it, to confirm the fact my system claimed really is written there, word for word, and not just a document that happened to be nearby in the search results. I did this for all 5 questions, and every single citation checked out as genuinely accurate. |
+| 1 | Retrieved chunk contains the answer | MET | Target was "at least 4 of 5." All three runs came out to exactly 4/5 — never higher, never lower. The one question that didn't pass (pub hours) isn't really a retrieval problem: the chunk had the right opening hours in it. It only failed because my `expects` phrase said "12 **to** 2 and 6 **to** 8:30," while the real document says "between 12 **and** 2 and again between 6 **and** 8:30." Same fact, different connector word. Since "at least 4 of 5" is literally what I got, I'm calling this MET — but I want it visible that it wasn't a clean 5/5. |
+| 2 | Every answer names a source | MET | Target was "5 of 5," and I got exactly that in all 3 runs — all 15 answers named a source. Not surprising: naming a source isn't the AI's call to make. A single line in `app.py` collects the retrieved filenames automatically, every time. |
+| 3 | Gate stops out-of-corpus questions | MET | Target was "at least 4 of 5," got 5/5 every run. Matches what I already knew from Unit 1 — the distance gap between real and fake questions was wide (0.364 vs 0.808), so nothing landed in the middle to confuse the gate. |
+| 4 | Chunks are usable even with rough edges | MET | Target was "at least 4 of 5," got 5/5 from a fresh sample via `python app.py chunks -n 5`. A real improvement over the old chunker, which had 1 broken chunk in a same-size sample — this sample had none. |
+| 5 | Cited sources actually contain the fact | MET | Target was "at least 4 of 5," got 5/5. I opened each cited document myself and confirmed the fact was actually there, not just that a document happened to be nearby in the results. |
 
 ## Diagnoses
 
 The instructions for this section say: for each criterion I missed, figure
-out which of the five pipeline stages caused it (loading → chunking →
-embedding → retrieval → generation), and explain the actual mechanism, not
-just "it didn't work." **But in my case, nothing was actually missed** — all
-5 criteria came out MET, holding across all 3 runs. So instead of diagnosing
-a failure, this section is me being honest about a close call that *looked*
-like a failure, and explaining exactly why it wasn't one, plus thinking
-honestly about whether my targets were actually hard to hit or just easy.
+out which pipeline stage caused it (loading → chunking → embedding →
+retrieval → generation) and explain the mechanism, not just "it didn't
+work." **Nothing was actually missed** — all 5 criteria came out MET,
+holding across all 3 runs. So this section is about a close call that
+*looked* like a failure, why it wasn't one, and whether my targets were
+actually hard to hit or just easy.
 
-**The near-miss, explained properly.** `scorer.py` (the little program I
-built to automatically grade my system's answers) marked the question "What
-hours do Kestrelford's pubs serve food?" as a fail, in all 3 runs. My first
-instinct was to assume something in my pipeline was broken. So I went
-through each of the five stages one at a time, the same way the assignment
-wants me to for a real failure:
+**The near-miss.** `scorer.py` marked "What hours do Kestrelford's pubs
+serve food?" a fail in all 3 runs. My first instinct was to assume
+something in the pipeline broke. So I checked each stage:
 
-- **Loading** — did the right document even get read off disk? Yes,
-  `guide_kestrelford.md` was loaded correctly, same as every other document.
-- **Chunking** — did my chunker cut the pub-hours sentence in a way that
-  lost information? No — the whole "Eat and drink" section came through as
-  one complete chunk, sentence intact.
-- **Embedding** — did the chunk get turned into a search-able vector
-  correctly? Yes — I could tell because of what happened at the next stage.
-- **Retrieval** — did my search actually find and return this chunk when I
-  asked the question? Yes, every time — the "best distance" was 0.144, one
-  of the closest matches across all my questions, meaning the system was
-  very confident it had found the right chunk.
-- **Generation** — did the AI model write a correct answer using that
-  chunk? Yes — every one of the 3 runs said the pubs serve food "between 12
-  and 2 and again between 6 and 8:30," which is exactly correct, and it even
-  named the right source document each time.
+- **Loading** — right document read? Yes.
+- **Chunking** — did the pub-hours sentence get cut apart? No, the whole
+  "Eat and drink" section came through as one piece.
+- **Embedding** — turned into a searchable vector correctly? Yes, based
+  on what happened next.
+- **Retrieval** — did search actually find this chunk? Yes, every time —
+  best distance 0.144, one of the closest matches of any question.
+- **Generation** — did the model write a correct answer? Yes, all 3 runs
+  said "between 12 and 2 and again between 6 and 8:30," exactly right,
+  with the correct source named.
 
-So all five stages worked perfectly. The actual problem is something the
-assignment's five-stage list doesn't even cover, because it isn't part of
-the RAG pipeline at all — it's in my own **test setup**. Back in Unit 1, I
-wrote my `expects` phrase (the exact text I told my test framework a
-correct answer must contain) as `"12 to 2 and 6 to 8:30"`. But the real
-document text — and every single answer my system generated from it —
-phrases the same fact as "between 12 **and** 2 and again between 6 **and**
-8:30." Same numbers, same fact, genuinely correct — just connected with the
-word "and" instead of the word "to." My original `scorer.py` was built to
-do an exact substring match (after cleaning up capitalization, punctuation
-and extra spaces), so it was looking for my *exact* wording, word for word,
-and a phrase that says the same true thing in slightly different words
-never matched. In short: my pipeline was never broken. My test was checking
-for the wrong kind of match.
+All five stages worked. The real problem is outside the pipeline entirely
+— it's in my own test setup. My `expects` phrase said `"12 to 2 and 6 to
+8:30"`. The real document — and every answer generated from it — phrases
+it "between 12 **and** 2 and again between 6 **and** 8:30." Same fact,
+different connector word. `scorer.py` was doing an exact substring match,
+so a correct answer worded slightly differently never matched. My pipeline
+was never broken. My test was checking for the wrong kind of match.
 
-**Were my targets set too easy?** Looking honestly at the numbers, mostly
-yes. Criteria 2 through 5 all beat their targets comfortably — I asked for
-"at least 4 of 5" (or already the strictest possible, "5 of 5") and got a
-clean 5/5 on all of them, every run. That's a sign I probably wasn't
-pushing my system very hard with those targets. Criterion 1 is the one
-honest exception — it landed exactly on its target, 4 of 5, not higher —
-so that's the one place where my Unit 1 self actually set a number with
-real stakes, even though it turned out the "miss" inside that 4/5 wasn't a
-real system problem after all.
+**Were my targets too easy?** Mostly, yes. Criteria 2 through 5 all beat
+their targets comfortably — 5/5 against targets of 4/5 or already-5/5,
+every run. Criterion 1 is the exception — it landed exactly on target, not
+above it, even though the "miss" inside it wasn't a real system problem.
 
-**Which one would I tighten, and to what?** I'd tighten criterion 3 (the
-relevance gate — the part of my system that's supposed to say "I don't
-know" instead of guessing when a question is outside what my documents
-cover) from "at least 4 of 5" up to "5 of 5." My reasoning: back in Unit 1,
-when I measured how far apart my "real" questions and my "nonsense"
-questions were (using a number called "distance," where lower means more
-related), I found a huge, clean gap — my worst real question scored 0.364,
-and my closest nonsense question scored 0.808. That's a 0.44-wide gap with
-absolutely nothing in the middle, the widest safety margin of any of my
-five criteria. And sure enough, in this unit's actual testing, it held at
-a full 5/5 in every single run, no exceptions. When a target has that much
-extra room between what I required and what the system actually
-consistently does, it isn't really testing the edge of what the system can
-do — it's just confirming something I already knew was safe. Raising it to
-5/5 would turn it into a real standard instead of a comfortable one.
+**What I'd tighten:** criterion 3, from "at least 4 of 5" to "5 of 5." My
+Unit 1 distance measurement already showed a 0.44-wide gap between real
+questions (worst: 0.364) and fake ones (closest: 0.808) — the widest
+margin of any of my criteria. It held at 5/5 here too. A target with that
+much spare room isn't testing the edge of anything; it's just confirming
+what I already knew was safe.
 
 ## The Improvement
 
-**What I changed:** I rewrote one function, `scorer.py::contains_phrase`,
-which is the piece of code that actually decides whether an answer counts
-as "correct." The old version worked like this: clean up both the
-`expects` phrase and the answer (make everything lowercase, remove
-punctuation, collapse extra spaces), then check whether the *exact,
-whole* `expects` phrase — as one continuous piece of text, in that exact
-word order — shows up somewhere inside the answer. The new version works
-differently: it first strips out a small list of "connector" words that
-don't actually carry any of the real information (words like "to," "and,"
-"between," "again," "the," "a," "an," "of"), from *both* the `expects`
-phrase and the answer. Then, instead of requiring the whole phrase to
-appear as one continuous chunk of text, it just checks that every
-remaining word — the words that actually carry the fact, like numbers and
-names — shows up *somewhere* in the answer, in any order. So "12 to 2 and
-6 to 8:30" becomes, after stripping connectors, just the four numbers "12,
-2, 6, 8:30" — and the check now just asks "are all four of these numbers
-present in the answer," rather than "does this whole sentence appear
-verbatim."
+**What I changed:** Rewrote one function, `scorer.py::contains_phrase` —
+the piece that decides whether an answer counts as correct. The old
+version checked whether the *exact* `expects` phrase, as one continuous
+piece of text, appeared in the answer. The new version first strips out a
+small list of connector words that don't carry the fact ("to," "and,"
+"between," "again," "the," "a," "an," "of") from both the `expects` phrase
+and the answer, then checks that every remaining word shows up *somewhere*
+in the answer, in any order. So "12 to 2 and 6 to 8:30" becomes just the
+numbers "12, 2, 6, 8:30" — the check now asks whether those four numbers
+are present, not whether the whole sentence matches word for word.
 
-**Why I picked it:** My Milestone 3 diagnosis walked through all five
-pipeline stages for the one question that was failing, and found that
-every single stage — loading, chunking, embedding, retrieval, and
-generation — was working correctly. The system was retrieving the right
-information and writing correct, well-sourced answers. The only actual
-problem was in how I was *grading* those answers: my `expects` phrase
-assumed the model would always phrase things using the word "to" ("12 to
-2"), but the real documents — and every answer the model generated —
-consistently use "and" instead ("between 12 and 2"). Since my diagnosis
-pointed specifically and only at this grading mismatch, and not at
-anything in the actual RAG pipeline, I made sure my one allowed change
-targeted that exact thing. I didn't touch chunking, retrieval, or the
-prompt, because nothing about my diagnosis said there was a problem there
-— touching those would have been fixing something that wasn't actually
-broken.
+**Why I picked it:** My diagnosis found all five pipeline stages working
+correctly for the failing question — the system was retrieving the right
+information and writing correct, sourced answers. The only actual problem
+was in how I was grading those answers: my `expects` phrase assumed the
+word "to," but the real documents consistently use "and" instead. Since
+the diagnosis pointed only at this grading mismatch, not at anything in
+the pipeline, I made sure my one change targeted exactly that. I didn't
+touch chunking, retrieval, or the prompt — nothing pointed at a problem
+there.
 
 ### Run Log — After
 
@@ -507,103 +425,58 @@ Same answer text as before the change — nothing about the system's output
 moved. What changed is that the scorer now correctly recognizes it as
 correct instead of a false fail.
 
-**Did it help?** Yes, and in exactly the way I expected before I even ran
-it, which is how I know it was a real fix and not just a lucky number
-change. Before the fix, criterion 1 sat at exactly 4/5, the bare minimum
-that still counted as MET — not a failure, but the closest of all five
-criteria to actually becoming one. After the fix, criterion 1 moved to a
-full 5/5, in every one of the 3 runs. Every other criterion was already
-sitting at 5/5 before I made this change, and none of them moved — which
-actually makes sense and isn't something to worry about, since none of
-those other four questions had the "to" versus "and" wording problem in
-the first place, so there was nothing for this specific fix to change
-about them. The clearest proof that this was a genuine fix, and not just
-me nudging a number until it looked better: the AI's actual generated
-answer text is **identical** before and after my change — word for word,
-same source citations, same everything. What changed wasn't what the
-system said. What changed was how correctly I was able to *recognize*
-that the system's answer was right.
+**Did it help?** Yes, in exactly the way I expected before running it —
+which is how I know it was a real fix, not a lucky number change. Before:
+criterion 1 sat at exactly 4/5, the closest of my five criteria to
+actually failing. After: a full 5/5, every run. Nothing else moved, which
+makes sense — none of the other four questions had the wording problem, so
+there was nothing for this fix to change about them. The clearest proof
+it's a real fix: the AI's generated answer text is identical before and
+after — same words, same sources. What changed wasn't what the system
+said. What changed was how correctly I was able to recognize it was
+right.
 
 ## What's Still Broken
 
-Technically, nothing — every single one of my 5 criteria is MET, at a full
-5/5, in all 3 runs, after my fix. It would be easy to stop here and call
-the system finished, but "I hit my own targets" and "there's nothing left
-to improve" are two very different claims, and I only actually earned the
-first one. Here's what I know is still weak, even though none of it shows
-up as a failing number:
+Technically, nothing — all 5 criteria are MET at 5/5 after my fix. But
+"I hit my own targets" isn't the same claim as "there's nothing left to
+improve," and I only earned the first one. What's still weak, even though
+none of it shows up as a failing number:
 
-- **I only tested 5 questions, and I wrote all 5 of them myself.** The
-  assignment asks for 5, so that's what I have, but 5 questions against 14
-  documents and 94 chunks is a small slice of everything my system could
-  possibly be asked. Because I'm the one who wrote all 5 questions, I
-  might have unconsciously picked questions I already suspected my system
-  would handle well. A question I haven't thought of yet — maybe a
-  trickier one, or one about a part of a document I skimmed past — could
-  still fail in a way none of my current 5 would ever reveal, simply
-  because I never asked it.
-- **Every single one of my 5 questions has its complete answer sitting in
-  one chunk.** None of them require the system to combine two separate
-  facts from two different chunks to produce a full answer. That means I
-  genuinely don't know how my system behaves on a harder kind of question
-  — one where, say, half the answer is in the "Getting there" section and
-  the other half is in "Practical notes." I never tested that case,
-  because I never wrote a question that needed it.
-- **My improved `scorer.py` is better, but it's still not a real
-  "understanding" check.** It would still mark "eleven" and "11" as
-  completely different words, even though a human reading both would
-  immediately know they mean the same number. Same with a correct answer
-  that used a synonym in place of the exact word I wrote in `expects` — my
-  scorer has no way to know two different words can mean the same thing.
-  It's genuinely more forgiving than the old exact-substring version, but
-  it's still just comparing words on the page, not meanings.
+- **I only tested 5 questions, and I wrote all 5 myself.** That's a small
+  slice of 14 documents and 94 chunks, and since I wrote them, I might have
+  unconsciously picked ones I already suspected would work. A trickier
+  question I haven't thought of could still fail in a way none of these 5
+  would ever catch.
+- **None of my 5 questions need two chunks combined to answer.** I don't
+  actually know how the system handles a question whose answer is split
+  across two sections, because I never wrote one to test it.
+- **`scorer.py` is better but still not a real understanding check.** It
+  would mark "eleven" and "11" as different words, or miss a correct
+  synonym. It compares words on the page, not meaning.
 
-I'm choosing to stop here rather than keep going, because the assignment
-specifically asks for exactly one measured improvement, and I made the one
-that my actual diagnosis pointed at — not a random guess at what else
-might be wrong. These three points aren't things I ran out of time for;
-I'm listing them honestly as things I never attempted in the first place,
-and I'd want to actually test all three before I'd trust this system with
-something that mattered more than a class project.
+I'm stopping here because the assignment scopes exactly one improvement,
+and I made the one my diagnosis pointed at. These aren't things I ran out
+of time for — I never attempted them, and I'd want to test all three
+before trusting this system with something that mattered more than a
+class project.
 
 ## What I'd Do Differently
 
-Knowing everything I know now, having actually run my system and watched
-where it came close to a problem versus where it didn't, here's what I'd
-change about how I wrote my original five criteria back in Unit 1:
+**Criterion 1** — I'd write `expects` as a list of the individual facts
+that matter (`["12", "2", "6", "8:30"]`) instead of one exact sentence
+fragment. That's basically what my Milestone 4 fix does anyway, just
+designed in from the start instead of patched in afterward. I'd never have
+gotten the false "fail" if I'd been testing for the actual facts instead of
+one specific sentence structure.
 
-**Criterion 1** — I would have written my `expects` phrases completely
-differently from the very start. Instead of writing one exact sentence
-fragment like `"12 to 2 and 6 to 8:30"` and hoping the AI model would
-happen to phrase its answer exactly that way, I'd write `expects` as a
-*list* of the individual pieces of information that actually matter —
-something like `["12", "2", "6", "8:30"]` — and check that all of them
-show up, regardless of what words connect them. That's basically what my
-Milestone 4 fix ended up doing anyway, just built into `scorer.py` after
-the fact instead of designed into `questions.py` from the beginning. If
-I'd written it this way originally, I never would have gotten a false
-"fail" in the first place, because I wouldn't have been testing for one
-specific sentence structure — I'd have been testing for the actual facts.
+**Criterion 3** — I'd set a stricter target from day one: "5 of 5" instead
+of "at least 4 of 5." I already had the evidence for it in Unit 1 — a
+0.44-wide distance gap with nothing in the middle. I just played it safe
+instead of trusting that measurement. Both runs this unit came out 5/5,
+which shows the caution wasn't necessary.
 
-**Criterion 3** — I would have set a stricter target from day one: "5 of 5"
-instead of "at least 4 of 5." Here's why I think I was too cautious the
-first time: back in Unit 1, before I'd even built this Unit 2 test, I had
-already measured the "distance" gap between my real questions and my fake
-ones, and found a huge 0.44-wide gap with nothing in the middle (0.364 for
-my hardest real question versus 0.808 for my closest fake one). That's
-strong evidence, and I had it in hand *before* I wrote my target — I just
-didn't trust it enough at the time and played it safe with "4 of 5"
-instead. Now that I've actually run the test twice (once before my fix,
-once after) and gotten a clean 5/5 both times, I can see that my caution
-wasn't necessary. I had the evidence to be stricter all along.
-
-**Criterion 2** — I wouldn't change this one at all. My original reasoning
-in Unit 1 was that naming a source isn't something the AI model has to
-remember or decide to do — it's guaranteed by a single line of my own
-Python code, not by the model's judgment. That reasoning turned out to be
-exactly right: this criterion passed at a perfect 5/5 in every run, in
-both units, with zero exceptions. When a piece of reasoning holds up this
-well under real testing, I don't think the lesson is "I got lucky" — I
-think the lesson is that I understood my own system correctly when I wrote
-it, and there's nothing here I'd second-guess just for the sake of
-revising something.
+**Criterion 2** — I wouldn't change this one. My Unit 1 reasoning — that
+naming a source is guaranteed by my own code, not the AI's judgment — held
+up exactly as expected: 5/5 in every run, both units. Nothing here needs
+revising just for the sake of it.
