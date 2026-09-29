@@ -332,34 +332,54 @@ target and what the system actually does isn't really testing anything;
 
 ## The Improvement
 
-**What I changed:**
+**What I changed:** Rewrote `scorer.py::contains_phrase` from an exact
+substring match to an order-independent "content words" match — it strips
+out a small set of connector words (to, and, between, again, the, a, an,
+of) from both the `expects` phrase and the answer, then checks that every
+remaining word from `expects` appears somewhere in the answer.
 
-**Why I picked it:**
-
-<!-- Connect it to a specific diagnosis above in one sentence. If you can't,
-     you picked a fix because it sounded impressive. -->
+**Why I picked it:** My Milestone 3 diagnosis found no actual defect in
+retrieval, chunking, embedding, or generation for any question — the one
+thing `scorer.py` marked "fail" (pub hours) was correct in every pipeline
+stage. The only real cause was my own `expects` phrase assuming one exact
+wording ("X to Y") that the source document and every generated answer
+never actually use ("between X and Y"). That's a test-harness problem, so
+I fixed the test harness, not the system — the diagnosis pointed directly
+here, not at chunking or retrieval.
 
 ### Run Log — After
 
-<!-- Same format, same five criteria, three runs each.
-     `python run_eval.py --label after` -->
-
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1. Retrieved chunk contains the answer | 4 of 5 |  |  |  |  |
-| 2. Every answer names a source | 5 of 5 |  |  |  |  |
-| 3. Gate stops out-of-corpus questions | 4 of 5 |  |  |  |  |
-| 4. | | | | | |
-| 5. | | | | | |
+| 1. Retrieved chunk contains the answer | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 2. Every answer names a source | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 4. Chunks are usable even with rough edges | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 5. Cited sources actually contain the fact | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
 
-**Did it help?**
+Produced by `run_eval.py::main` and the new `scorer.py::judge`, from
+`results/run_2026-09-29_1441_after.md`.
 
-<!-- Say plainly whether it did, and how you know. If it made things worse,
-     say that — a change that backfired, honestly reported, earns full credit
-     and is more interesting than one that worked. What matters is that you can
-     tell.
+```
+What hours do Kestrelford's pubs serve food? — run 1
+Kestrelford's pubs serve food between 12 and 2 and again between 6 and 8:30
+(Source: guide_kestrelford.md and guide_eating.md).
+```
+Same answer text as before the change — nothing about the system's output
+moved. What changed is that the scorer now correctly recognizes it as
+correct instead of a false fail.
 
-     Milestone 4. -->
+**Did it help?** Yes, and specifically in the way the diagnosis predicted:
+criterion 1 moved from exactly 4/5 (the bare minimum for its target) to
+5/5, in all three runs. Every other criterion was already at 5/5 before
+this change and stayed there — this fix couldn't have touched them, since
+none of their questions had a wording-mismatch problem. Before: 1 of 5
+criteria was passing right at the edge of its target. After: all 5 are
+passing with margin. I know it helped, rather than just moved the number
+around by chance, because I traced the mechanism first (Milestone 3) and
+the fix targets exactly that mechanism — the answer text itself is
+unchanged between before/after, confirming the fix is in how it's judged,
+not a change in what the system actually produces.
 
 ## What's Still Broken
 
