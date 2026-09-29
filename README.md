@@ -297,23 +297,38 @@ not just the nearest retrieved document.
 
 ## Diagnoses
 
-<!-- For each miss: which stage caused it, and how. The stage alone isn't
-     enough — you need the mechanism.
+**Nothing was missed.** All 5 criteria came out MET against their original
+Unit 1 targets, on every one of the 3 runs.
 
-     Not a diagnosis: "Question 3 didn't work."
-     A diagnosis:     "Question 3 asks about laundry costs. The answer is in
-                       one sentence that got split across two chunks, so
-                       neither chunk on its own contains it."
+**One thing is still worth diagnosing, even though it didn't cause a miss.**
+`scorer.py` marked "What hours do Kestrelford's pubs serve food?" a fail in
+all 3 runs — but this isn't a failure in any of the five pipeline stages
+(loading, chunking, embedding, retrieval, generation). I checked each one:
+the correct document was retrieved, the correct chunk was embedded and
+found, and the generated answer was accurate and grounded, every time. The
+actual mechanism is outside the pipeline entirely — my own `expects` phrase
+in `questions.py`, written back in Milestone 2, assumed the fact would be
+phrased "12 **to** 2 and 6 **to** 8:30." The source document itself, and
+every answer the model generated from it, phrases it "between 12 **and** 2
+and again between 6 **and** 8:30." `scorer.py` does an exact substring
+match after normalizing case/punctuation/whitespace, so a real, correct
+answer never matches a differently-worded `expects` string. This is a test
+authoring problem, not a system problem — I wrote a target that assumed one
+exact phrasing that the source material never actually uses.
 
-     The five stages: loading → chunking → embedding → retrieval → generation.
+**Were the targets set too low?** Mostly, yes. Criteria 2 through 5 all beat
+their targets comfortably (5/5 against targets of 4/5, or already-5/5).
+Criterion 1 is the one genuine exception — it landed exactly on its target
+(4/5, not higher), so that one wasn't set with much room to spare, even
+though the "failure" inside that 4/5 turned out to be a test-authoring
+issue rather than a real one.
 
-     Look for a pattern. If three misses all ask about numbers, that's one
-     problem, not three.
-
-     Missed nothing? Say so, then say honestly whether your targets were set
-     low, and which one you'd tighten and to what.
-
-     Milestone 3. -->
+**What I'd tighten:** criterion 3 (the relevance gate), from "at least 4 of
+5" to "5 of 5." The distance gap I measured in Unit 1 was 0.44 wide
+(0.364 vs 0.808) — the widest margin of any of my criteria — and it held at
+5/5 across all 3 runs here too. A criterion with that much room between the
+target and what the system actually does isn't really testing anything;
+5/5 would be a real standard instead of a comfortable one.
 
 ## The Improvement
 
