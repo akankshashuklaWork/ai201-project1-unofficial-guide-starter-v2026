@@ -185,6 +185,27 @@ read through all 8 chunks it produced from `guide_kestrelford.md` to confirm
 the previously broken chunk was now a complete, labeled section before
 accepting the change.
 
+**3.** (Unit 2) I told Claude the three functions I wanted in `scorer.py`
+— `normalize`, `contains_phrase`, `judge` — and it found the exact
+interface `run_eval.py` actually required (`judge(question, expects,
+answer, results) -> bool`) by reading that file's docstring rather than
+guessing, then implemented my three functions to match it. I ran the
+real evaluation myself afterward and found the exact-substring version
+had a real bug (the pub-hours wording mismatch) that neither of us had
+anticipated when we designed it — the AI's first implementation matched
+what I'd asked for exactly, but "what I asked for" turned out to be
+insufficient, and that only showed up once I actually ran it against
+real data.
+
+**4.** (Unit 2) When `scorer.py` marked a correct answer as a fail, I
+asked Claude to find out why rather than just accepting the failing
+grade. It checked each of the five pipeline stages against the actual
+retrieved chunk and generated answer, ruled out a real defect in all
+five, and traced the cause to my own `expects` phrase's wording
+assumption. I used that diagnosis to decide the Milestone 4 fix myself
+(improve the scorer's matching, not touch the pipeline) — the diagnosis
+told me where the problem was; deciding what to do about it was mine.
+
 <!-- ── Stretch features ─────────────────────────────────────────────────────
      Doing one? Say so here BEFORE you start. A feature this README never
      claims earns nothing.
@@ -383,17 +404,46 @@ not a change in what the system actually produces.
 
 ## What's Still Broken
 
-<!-- For each criterion still missed after your fix: what you'd do about it,
-     and why you stopped where you did.
+No criterion is missed after the fix — all 5 are MET, 5/5, in all 3 runs.
+That's a real result, not a reason to stop looking for weaknesses:
 
-     "I ran out of time" is fine if it's true. Pretending nothing is left is
-     not.
+- **My test coverage is thin.** 5 questions and 5 out-of-scope questions
+  is what the assignment asks for, but it's a small sample against 14
+  documents and 94 chunks. A question I haven't thought to ask could
+  still fail in a way none of my 5 would reveal.
+- **Every one of my 5 questions has its answer in a single chunk.**
+  None of them require combining facts from two different chunks. I
+  don't actually know how the system behaves on a question whose answer
+  is split across sections, because I never wrote one.
+- **`scorer.py`'s content-word matching is still fairly literal.** It
+  would mark "eleven" and "11" as different words, or miss a correct
+  answer that used a synonym instead of the exact number/name in
+  `expects`. It's more forgiving than the original exact-substring
+  version, but it's still not a real semantic check.
 
-     Milestone 5. -->
+I'm stopping here because the assignment scopes one improvement, and I
+made the one my diagnosis actually pointed at. These three are real
+limitations I'd want to test before trusting this system somewhere that
+mattered more than a class project — not things I ran out of time on,
+since I never attempted them in the first place.
 
 ## What I'd Do Differently
 
-<!-- Knowing what you know now — which of your five criteria would you write
-     differently, and why?
+**Criterion 1** — I'd write `expects` phrases as a list of required
+words/numbers from the start (e.g. `["12", "2", "6", "8:30"]`) instead of
+one exact sentence fragment. That's effectively what my Milestone 4 fix
+made the scorer do after the fact; writing it that way from Milestone 2
+would have caught the wording assumption before it ever produced a
+misleading "fail."
 
-     Milestone 5. -->
+**Criterion 3** — I'd tighten the target from "at least 4 of 5" to "5 of
+5" from the start. My Unit 1 distance measurement already showed a 0.44
+gap between in-corpus and out-of-scope questions — wide enough that I
+had the evidence for a stricter target before I ever wrote "4 of 5." I
+wrote the safer number instead, and this unit's results (5/5 in both the
+before and after runs) show it wasn't necessary caution.
+
+**Criterion 2** — I'd leave this one exactly as it is. Writing "every
+answer names a source" as a code-guaranteed behavior rather than an
+AI-judgment call was the right instinct in Unit 1, and nothing this unit
+gave me a reason to revise it.
