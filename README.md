@@ -212,15 +212,69 @@ accepting the change.
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1. Retrieved chunk contains the answer | 4 of 5 |  |  |  |  |
-| 2. Every answer names a source | 5 of 5 |  |  |  |  |
-| 3. Gate stops out-of-corpus questions | 4 of 5 |  |  |  |  |
-| 4. | | | | | |
-| 5. | | | | | |
+| 1. Retrieved chunk contains the answer | 4 of 5 | 4/5 | 4/5 | 4/5 |  |
+| 2. Every answer names a source | 5 of 5 | 5/5 | 5/5 | 5/5 |  |
+| 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 |  |
+| 4. Chunks are usable even with rough edges | 4 of 5 | 5/5 | 5/5 | 5/5 |  |
+| 5. Cited sources actually contain the fact | 4 of 5 | 5/5 | 5/5 | 5/5 |  |
 
-<!-- Underneath, paste the REAL output for each criterion from one of your
-     runs — the actual text your system produced, not a description of it.
-     Name the file and function that produced it. -->
+Produced by `run_eval.py::main` and `scorer.py::judge`, from
+`results/run_2026-09-29_1349_before.md`. Criterion 1 counts a question as
+passing if `scorer.py` found the `expects` phrase in the answer text.
+Criterion 2 and 5 were checked by reading all 15 answers by hand (`scorer.py`
+only checks against `expects`, not source correctness). Criteria 3 and 4 are
+single deterministic checks — the gate cutoff and the chunker don't change
+between runs, so the same number is correct in all three columns, not lazy.
+
+**Real output, one example per criterion:**
+
+**1 — retrieved chunk contains the answer**, from *"What hours do
+Kestrelford's pubs serve food?"* — `scorer.py` marks this question a fail
+in all 3 runs, but the retrieved chunk genuinely contains the fact:
+
+```
+Kestrelford — Eat and drink
+
+Four pubs, two cafés, and a bakery that sells out by 11am. The pubs serve
+food between 12 and 2 and again between 6 and 8:30, and outside those
+windows there is nowhere to eat at all. The bakery is the reason most
+people come back.
+```
+The system's answer (run 1): *"Kestrelford's pubs serve food between 12
+and 2 and again between 6 and 8:30 (Source: guide_kestrelford.md and
+guide_eating.md)."* My `expects` phrase was `"12 to 2 and 6 to 8:30"` —
+the document itself (and every answer) says "between X and Y," not "X to
+Y," so the exact-substring check never matches even though the fact is
+right there. Diagnosed further in Milestone 3.
+
+**2 — every answer names a source**, from *"Since what year has
+Marchwood's covered market operated?"* — run 1:
+```
+Marchwood's covered market has operated since 1863. (Source: `guide_eating.md` and `guide_marchwood.md`)
+```
+
+**3 — gate stops out-of-corpus questions**, from `results/run_2026-09-29_1349_before.md`:
+```
+refused  (best distance 0.808)  What is the capital of Mongolia?
+```
+
+**4 — chunks are usable**, from `python app.py chunks -n 5`, source
+`guide_kestrelford.md#4`, produced by `chunker.py::split_documents`:
+```
+Kestrelford — What to see
+
+The market square on a Saturday morning is the main event and has run
+continuously since the 1400s. The parish church has a 13th-century tower
+you can climb for £2. The old trackbed walk runs six miles to the next
+village along an easy gradient and is the best half-day here.
+```
+
+**5 — cited sources actually contain the fact**, from *"How do prices at
+Halden Bay's harbour front compare to Fell Street?"* — run 1 cited
+`guide_halden_bay.md`, which independently says in its own "Eat and
+drink" section: *"Prices on the harbour front are roughly double those on
+Fell Street... for comparable food"* — confirming the citation is real,
+not just the nearest retrieved document.
 
 ## Verdicts
 
